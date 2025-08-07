@@ -1,0 +1,44 @@
+.close-account-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 25px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.close-account-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+}
+
+.close-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.close-account-form input {
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.close-account-form button {
+  padding: 10px;
+  font-size: 15px;
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.close-account-form button:hover {
+  background-color: #b71c1c;
+}
+
+

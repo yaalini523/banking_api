@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS
 from db import Base, engine
 from auth import require_role
@@ -6,6 +7,7 @@ from validators.check_holder import register_account_holder, get_all_account_hol
 from validators.check_account import open_bank_account, close_account_by_id
 from validators.check_transfer import process_fund_transfer
 app = Flask(__name__)
+CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
 
