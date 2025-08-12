@@ -1,5 +1,5 @@
 from flask import jsonify
-from models import AccountHolder
+from models import AccountHolder, Account
 from db import SessionLocal
 from repo.db_repo import save_account_holder, fetch_all_account_holders
 from logic.logic import (
@@ -56,6 +56,72 @@ def get_all_account_holders():
             'phone_number': holder.phone_number,
             'dob': holder.dob.isoformat(),
             'aadhaar_number': holder.aadhaar_number,
-            'address': holder.address
+            'address': holder.address,
+            'status' : holder.status
         })
     return jsonify(result), 200
+
+
+def get_holder_info_logic(phone, info_type="id"):
+    if not phone:
+        return {"error": "Phone number is required"}, 400
+
+    session = SessionLocal()
+    try:
+        holder = session.query(AccountHolder).filter_by(phone_number=phone).first()
+        if not holder:
+            return {"error": "Holder not found"}, 404
+
+        if info_type == "id":
+            return {"holder_id": holder.id}, 200
+
+        elif info_type == "details":
+            return {
+                "id": holder.id,
+                "first_name": holder.first_name,
+                "last_name": holder.last_name,
+                "email": holder.email,
+                "phone_number": holder.phone_number,
+                "dob": holder.dob.strftime("%Y-%m-%d") if holder.dob else None,
+                "aadhaar_number": holder.aadhaar_number,
+                "address": holder.address,
+                "status": holder.status,
+            }, 200
+
+        else:
+            return {"error": "Invalid type parameter"}, 400
+
+    except SQLAlchemyError as e:
+        return {"error": "Database error", "details": str(e)}, 500
+
+    finally:
+        session.close()
+        
+def get_accounts_by_holder_id(data):
+    holder_id = data.get("holder_id")
+    if not holder_id:
+        return {"error": "holder_id parameter is required"}, 400
+
+    session = SessionLocal()
+    try:
+        accounts = session.query(Account).filter_by(holder_id=holder_id).all()
+        if not accounts:
+            return {"message": "No accounts found for this holder_id"}, 404
+
+        accounts_list = []
+        for acc in accounts:
+            accounts_list.append({
+                "id": acc.id,
+                "account_number": acc.account_number,
+                "account_type": acc.account_type,
+                "balance": acc.balance,
+                "status": acc.status,
+            })
+
+        return {"accounts": accounts_list}, 200
+
+    except SQLAlchemyError as e:
+        return {"error": "Database error", "details": str(e)}, 500
+
+    finally:
+        session.close()

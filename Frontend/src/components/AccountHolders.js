@@ -68,6 +68,7 @@ class AccountHolders extends Component {
                 <th>DOB</th>
                 <th>Aadhaar</th>
                 <th>Address</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -81,6 +82,7 @@ class AccountHolders extends Component {
                   <td>{holder.dob}</td>
                   <td>{holder.aadhaar_number}</td>
                   <td>{holder.address}</td>
+                  <td>{holder.status}</td>
                 </tr>
               ))}
             </tbody>
