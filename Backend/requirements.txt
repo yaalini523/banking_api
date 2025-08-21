@@ -1,0 +1,13 @@
+# Web Framework
+Flask==3.1.1
+flask-cors==6.0.1  
+
+# Database & ORM
+SQLAlchemy==2.0.43
+psycopg2-binary==2.9.9
+
+# Testing
+pytest==8.4.1
+
+# Big Data / Spark
+pyspark==4.0.0

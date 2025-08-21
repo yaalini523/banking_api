@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import "./OpenAccountForm.css";
-import axios from "axios";
+import { getHolderInfo, openAccount } from "../api/bankapi"; // import from bankapi.js
 
 class OpenAccountForm extends Component {
   constructor(props) {
@@ -13,34 +13,33 @@ class OpenAccountForm extends Component {
       generatedAccountNumber: "",
       loading: false,
       fetchingHolderId: false,
+      error: "", // For inline errors
     };
   }
 
+  //Updates the state when user types into form fields.
   handleChange = (e) => {
-    this.setState({ [e.target.name]: e.target.value });
+    this.setState({ [e.target.name]: e.target.value, error: "" });
   };
 
-  // Fetch holder_id when phone number is entered
   fetchHolderId = async () => {
-    if (!this.state.phone_number) return;
+    const { phone_number } = this.state;
+    if (!phone_number) return;
 
-    this.setState({ fetchingHolderId: true, holder_id: "" });
+    this.setState({ fetchingHolderId: true, holder_id: "", error: "" });
 
     try {
-      const res = await axios.get(
-        "http://localhost:5000/get_holder_info",
-        {
-          params: { phone: this.state.phone_number },
-        }
-      );
+      const res = await getHolderInfo(phone_number);
 
       if (res.data && res.data.holder_id) {
         this.setState({ holder_id: res.data.holder_id });
       } else {
-        alert("No holder found with this phone number.");
+        this.setState({ error: "No holder found with this phone number." });
       }
     } catch (err) {
-      alert("Error fetching holder ID. Please check the phone number.");
+      this.setState({
+        error: "Error fetching holder ID. Please check the phone number.",
+      });
       console.error(err);
     } finally {
       this.setState({ fetchingHolderId: false });
@@ -49,35 +48,37 @@ class OpenAccountForm extends Component {
 
   handleSubmit = async (e) => {
     e.preventDefault();
-    this.setState({ loading: true, generatedAccountNumber: "" });
+    const { holder_id, account_type, balance } = this.state;
+
+    this.setState({ loading: true, generatedAccountNumber: "", error: "" });
+
+    if (!holder_id) {
+      this.setState({ loading: false, error: "Valid holder ID required." });
+      return;
+    }
 
     try {
-      const payload = {
-        holder_id: this.state.holder_id,
-        account_type: this.state.account_type,
-      };
+      const payload = { holder_id, account_type };
+      if (balance) payload.balance = parseFloat(balance);
 
-      if (this.state.balance) {
-        payload.balance = parseFloat(this.state.balance);
-      }
-
-      const res = await axios.post(
-        "http://localhost:5000/open_account",
-        payload
-      );
+      const res = await openAccount(payload);
 
       if (res.data && res.data.account_number) {
-        alert(`Account created successfully!`);
-        this.setState({ generatedAccountNumber: res.data.account_number });
+        this.setState({
+          generatedAccountNumber: res.data.account_number,
+          error: "",
+          phone_number: "",
+          holder_id: "",
+          account_type: "",
+          balance: "",
+        });
       } else {
-        alert("Account created, but no account number returned.");
+        this.setState({ error: "Account created, but no account number returned." });
       }
     } catch (err) {
-      if (err.response?.data?.error) {
-        alert(err.response.data.error);
-      } else {
-        alert("Failed to open account due to network/server error.");
-      }
+      this.setState({
+        error: err.response?.data?.error || "Failed to open account due to network/server error.",
+      });
       console.error("Error during account opening:", err);
     } finally {
       this.setState({ loading: false });
@@ -85,32 +86,32 @@ class OpenAccountForm extends Component {
   };
 
   render() {
+    const { phone_number, holder_id, account_type, balance, generatedAccountNumber, loading, error } = this.state;
+
     return (
       <div className="open-account-container">
         <h2>Open Bank Account</h2>
         <form onSubmit={this.handleSubmit} className="open-account-form">
-          {/* Phone number field to get holder_id */}
           <input
             name="phone_number"
             placeholder="Enter Phone Number"
-            value={this.state.phone_number}
+            value={phone_number}
             onChange={this.handleChange}
             onBlur={this.fetchHolderId}
             required
           />
 
-          {/* Holder ID (auto-filled) */}
           <input
             name="holder_id"
             placeholder="Holder ID"
-            value={this.state.holder_id}
+            value={holder_id}
             readOnly
             required
           />
 
           <select
             name="account_type"
-            value={this.state.account_type}
+            value={account_type}
             onChange={this.handleChange}
             required
           >
@@ -122,20 +123,20 @@ class OpenAccountForm extends Component {
           <input
             name="balance"
             placeholder="Initial Balance (optional)"
-            value={this.state.balance}
+            value={balance}
             onChange={this.handleChange}
           />
 
-          <button type="submit" disabled={this.state.loading}>
-            {this.state.loading ? "Opening..." : "Open Account"}
+          <button type="submit" disabled={loading}>
+            {loading ? "Opening..." : "Open Account"}
           </button>
+
+          {error && <p className="error-message">{error}</p>}
         </form>
 
-        {/* Show generated account number below button */}
-        {this.state.generatedAccountNumber && (
+        {generatedAccountNumber && (
           <p style={{ marginTop: "10px", color: "green" }}>
-            Your account number:{" "}
-            <strong>{this.state.generatedAccountNumber}</strong>
+            Your account number: <strong>{generatedAccountNumber}</strong>
           </p>
         )}
       </div>

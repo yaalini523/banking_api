@@ -1,45 +1,42 @@
 import React, { Component } from "react";
-import axios from "axios";
+import { getAllHolders } from "../api/bankapi";
 import "./AccountHolders.css";
 
 class AccountHolders extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      holders: [],
-      error: "",
-      authRole: ""
-    };
-  }
-
-  handleInputChange = (event) => {
-    this.setState({ authRole: event.target.value });
+  state = {
+    holders: [],
+    error: "",
+    authRole: "",
+    loading: false,
   };
+
+  handleInputChange = (e) => this.setState({ authRole: e.target.value });
 
   fetchHolders = async () => {
     const { authRole } = this.state;
-
     if (!authRole) {
       this.setState({ error: "Please enter an AuthRole before fetching." });
       return;
     }
 
+    this.setState({ loading: true, error: "", holders: [] });
+
     try {
-      const res = await axios.get("http://localhost:5000/account_holders", {
-        headers: {
-          AuthRole: authRole
-        }
-      });
+      const res = await getAllHolders(authRole);
       this.setState({ holders: res.data, error: "" });
     } catch (err) {
       this.setState({
-        error: err.response?.data?.error || "Failed to fetch account holders."
+        error: err.response?.data?.error || "Failed to fetch account holders.",
+        holders: [],
       });
+      console.error("Error fetching account holders:", err);
+    } finally {
+      this.setState({ loading: false });
     }
   };
 
   render() {
-    const { holders, error, authRole } = this.state;
+    const { holders, error, authRole, loading } = this.state;
 
     return (
       <div className="table-container">
@@ -51,7 +48,9 @@ class AccountHolders extends Component {
             onChange={this.handleInputChange}
             placeholder="Enter role (e.g. Admin)"
           />
-          <button onClick={this.fetchHolders}>Fetch Account Holders</button>
+          <button onClick={this.fetchHolders} disabled={loading}>
+            {loading ? "Fetching..." : "Fetch Account Holders"}
+          </button>
         </div>
 
         {error && <div className="error">{error}</div>}

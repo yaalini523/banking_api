@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import axios from "axios";
-import "./AccountHolders.css";
+import { getHolderInfo } from "../api/bankapi";
 
 function AccountHolderDetails() {
   const [phone, setPhone] = useState("");
   const [holderDetails, setHolderDetails] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const fetchHolderDetails = async () => {
     setError("");
@@ -16,27 +16,35 @@ function AccountHolderDetails() {
       return;
     }
 
+    setLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/get_holder_info", {
-        params: { phone, type: "details" },
-      });
-      setHolderDetails(res.data);
+      const res = await getHolderInfo(phone);
+
+      if (res.data && res.data.id) {
+        setHolderDetails(res.data);
+      } else {
+        setError("No holder found with this phone number.");
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Failed to fetch holder details.");
+      console.error("Error fetching holder details:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{ maxWidth: "600px", margin: "auto" }}>
       <h2>Account Holder Details</h2>
-
       <input
         type="text"
         placeholder="Enter Phone Number"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
       />
-      <button onClick={fetchHolderDetails}>Fetch Holder Details</button>
+      <button onClick={fetchHolderDetails} disabled={loading}>
+        {loading ? "Fetching..." : "Fetch Holder Details"}
+      </button>
 
       {holderDetails && (
         <div style={{ border: "1px solid #ccc", padding: "10px", marginTop: "20px" }}>

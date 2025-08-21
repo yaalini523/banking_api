@@ -1,28 +1,35 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { getAccountsByHolder } from "../api/bankapi";
 import "./AccountHolders.css";
 
 function AccountDetails() {
   const [holderId, setHolderId] = useState("");
-  const [accountDetails, setAccountDetails] = useState(null);
+  const [accountDetails, setAccountDetails] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const fetchAccountDetails = async () => {
     setError("");
-    setAccountDetails(null);
+    setAccountDetails([]);
 
     if (!holderId) {
       setError("Please enter holder ID.");
       return;
     }
 
+    setLoading(true);
     try {
-      const res = await axios.get(
-        `http://localhost:5000/get_accounts_by_holder/${holderId}`
-      );
-      setAccountDetails(res.data.accounts || []);  // Assuming your backend returns {'accounts': [...]}
+      const res = await getAccountsByHolder(holderId);
+      if (res.data && res.data.accounts && res.data.accounts.length > 0) {
+        setAccountDetails(res.data.accounts);
+      } else {
+        setError("No accounts found for this holder.");
+      }
     } catch (err) {
-      setError(err.response?.data?.error || "No accounts found for this holder_id");
+      setError(err.response?.data?.error || "Failed to fetch account details.");
+      console.error("Error fetching accounts:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,40 +43,38 @@ function AccountDetails() {
         value={holderId}
         onChange={(e) => setHolderId(e.target.value)}
       />
-      <button onClick={fetchAccountDetails}>Fetch Account Details</button>
+      <button onClick={fetchAccountDetails} disabled={loading}>
+        {loading ? "Fetching..." : "Fetch Account Details"}
+      </button>
 
-      {accountDetails && (
+      {accountDetails.length > 0 && (
         <div style={{ border: "1px solid #ccc", padding: "10px", marginTop: "20px" }}>
-          {accountDetails.length > 0 ? (
-            <table border="1" cellPadding="5" cellSpacing="0" style={{ width: "100%" }}>
-              <thead>
-                <tr>
-                  <th>Id</th>
-                  <th>Account Number</th>
-                  <th>Account Type</th>
-                  <th>Balance</th>
-                  <th>Status</th>
+          <table border="1" cellPadding="5" cellSpacing="0" style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>Account Number</th>
+                <th>Account Type</th>
+                <th>Balance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accountDetails.map((acc) => (
+                <tr key={acc.account_number}>
+                  <td>{acc.id}</td>
+                  <td>{acc.account_number}</td>
+                  <td>{acc.account_type}</td>
+                  <td>{acc.balance}</td>
+                  <td>{acc.status}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {accountDetails.map((acc) => (
-                  <tr key={acc.account_number}>
-                    <td>{acc.id}</td>
-                    <td>{acc.account_number}</td>
-                    <td>{acc.account_type}</td>
-                    <td>{acc.balance}</td>
-                    <td>{acc.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No accounts found for this holder.</p>
-          )}
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p style={{ color: "red", marginTop: "10px" }}>{error}</p>}
     </div>
   );
 }

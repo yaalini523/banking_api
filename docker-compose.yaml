@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yaalini
+      POSTGRES_DB: bankdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - banking_net
+
+  backend:
+    build:
+      context: ./Backend
+    container_name: banking_backend
+    depends_on:
+      - db
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:yaalini@db:5432/bankdb
+    volumes:
+      - ./Backend:/app
+    command: ["./wait-for-it.sh", "db:5432", "--", "python", "app.py"]
+    networks:
+      - banking_net
+
+  frontend:
+    build:
+      context: ./Frontend
+    container_name: banking_frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://backend:5001
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+    command: npm start
+    networks:
+      - banking_net
+
+volumes:
+  db_data:
+
+networks:
+  banking_net:
+    driver: bridge

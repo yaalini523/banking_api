@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import "./CloseAccountForm.css";
-import axios from "axios";
+import { closeAccount } from "../api/bankapi";
 
 const CloseAccountForm = () => {
   const [accountId, setAccountId] = useState("");
-  const [message] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setAccountId(e.target.value);
+    setMessage("");
   };
 
   const handleSubmit = async (e) => {
@@ -18,22 +20,27 @@ const CloseAccountForm = () => {
       return;
     }
 
-    const confirmClose = window.confirm(`Are you sure you want to close Account ID ${accountId}?`);
+    const confirmClose = window.confirm(
+      `Are you sure you want to close Account ID ${accountId}?`
+    );
     if (!confirmClose) return;
 
+    setLoading(true);
     try {
-      const res = await axios.delete(`http://localhost:5000/close_account/${accountId}`);
-      if (res.data && res.data.message) {
-        alert(res.data.message);
-      } else {
-        alert("Account closed successfully.");
-      }
+      const res = await closeAccount(accountId);
+
+      const successMsg =
+        res.data?.message || "Account closed successfully.";
+      setMessage(successMsg);
+      alert(successMsg);
+      setAccountId(""); // reset input
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.error) {
-        alert(`Error: ${err.response.data.error}`);
-      } else {
-        alert("Account closure failed due to server/network error.");
-      }
+      const errorMsg =
+        err.response?.data?.error || "Account closure failed due to server/network error.";
+      alert(errorMsg);
+      console.error("Error during account closure:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,11 +55,12 @@ const CloseAccountForm = () => {
           onChange={handleChange}
           required
         />
-        <button type="submit">Close Account</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Closing..." : "Close Account"}
+        </button>
       </form>
 
-      {message && <div>{message}</div>}
-      
+      {message && <div style={{ marginTop: "10px", color: "green" }}>{message}</div>}
     </div>
   );
 };
